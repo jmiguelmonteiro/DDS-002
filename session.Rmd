@@ -1,0 +1,230 @@
+---
+title: 'DDS#002: Data Handling with R'
+author: "Sofiane M'Barki and Tomas Lima"
+date: "27 March 2018"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<style>
+body {
+    background-color: #FFFEEE;
+    font: 16px verdana;
+}
+</style>
+
+
+#### **What we will do in this session ?**
+
+Today we will use the R programming language to handle efficiently our data. In order to manage, structurate and observe rapidly and efficiently our data we will use two packages.
+
+The first one is the **dplyr** <https://dplyr.tidyverse.org> which provide us tones of tools to achieve our first two goals; and the second one is **ggplot2** <http://ggplot2.tidyverse.org> which gonna help us the achieve the last one. Both packages are part of **tidyverse ecosystem** <https://www.tidyverse.org> which is a collection of R packages designed for data science. 
+
+To install these packages you have two options: the first one is to install dplyr and ggplot2 independently. The second one is to install in one shot the tidyverse ecosystem which will automatically install those and others.
+
+<h1 align="center"> **Handle your data with dplyr** </h1><br>
+
+#### **Install dplyr and ggplot2**
+```{r dplyr and ggplot}
+#install.packages("dplyr")
+#install.packages("ggplot2")
+```
+
+#### **Install tidyverse ecosystem**
+```{r tidyverse}
+#install.packages("tidyverse")
+```
+
+
+#### **Load packages**
+```{r load packages}
+# Load the library and hide the outputs
+library(dplyr)
+library(ggplot2) 
+```
+
+
+#### **Select the columns you want to work with**
+```{r select}
+# Load iris dataset
+data(iris)
+
+# Select Sepal caracteristics
+iris.sepal <- iris %>% select(Sepal.Length, Sepal.Width)
+
+# Select Petal caracteristics
+iris.petal <- iris %>% select(Petal.Length, Petal.Width)
+
+
+# View dataframe
+iris.sepal %>% head()
+iris.petal %>% head()
+```
+
+
+#### **Filter your dataframe conditionnaly**
+```{r filter}
+# Takes the Sepal length with have a length inferior to 5 centimeters
+iris.filter <- iris %>% filter(Sepal.Length <= 5) %>% head()
+```
+
+
+#### **Mutate: create another computed variable**
+```{r mutate}
+# Create another column to compute the area of the Sepal and Petal
+iris.mutate.sepal.area <- iris %>% mutate(Sepal.area = Sepal.Length*Sepal.Width) %>% arrange(desc(Sepal.area))
+iris.mutate.petal.area <- iris %>% mutate(Petal.area = Petal.Length*Petal.Width) %>% arrange(desc(Petal.area))
+
+# Display the new dataframe
+iris.mutate.sepal.area %>% head()
+iris.mutate.petal.area %>% head()
+```
+
+
+#### **Summarise your data : split-apply-combine paradigm**
+```{r summarise}
+# Commute standard deviation and mean by species
+iris.summarise.mean <- iris %>% group_by(Species) %>% summarise( 
+                                                                mean(Sepal.Width),
+                                                                mean(Sepal.Length),
+                                                                mean(Petal.Width),
+                                                                mean(Petal.Length)
+                                                                
+                                                                )
+
+
+iris.summarise.sd <- iris %>% group_by(Species) %>% summarise(
+  
+                                                        sd(Sepal.Width),
+                                                        sd(Sepal.Length),
+                                                        sd(Petal.Width),
+                                                        sd(Petal.Length)
+                                                        
+                                                        )
+
+
+iris.summarise.mean
+iris.summarise.sd
+```
+
+
+<h1 align="center"> **Visualise your data with ggplot** </h1>
+
+The goal of this second part is to push our limits in an another border. Here we will play with both packages: ggplot and dplyr in order to create simple and beautiful graphics with a few lines of delicate codes. We will also see that the ```%>%``` "pipes" operator can be usefull to chain instructions from those packages. The process is simple:
+
+<ul>
+  <li> We handle and preprocess our data </li>
+  <li> We select the variables we want to plot with the aesthetic function </li>
+  <li> We choose our plotting geometry </li>
+</ul>
+
+---
+
+#### **First visualisation with dplyr and ggplot**
+```{r gapminder 1, fig.align='center'}
+#install.packages("gapminder")
+
+library(gapminder) %>% invisible() # load gapminder 
+
+data("gapminder") %>% View() # call the gapminder data and view it
+
+gapminder %>% filter(gdpPercap < 50000) %>% # take the gdpPercap > 50000
+  ggplot(aes(x=gdpPercap, y=lifeExp, col=continent)) + # gdpPercap function of life expectansy by continent
+  geom_point() # with point geometry
+
+```
+
+---
+
+#### **Logarithmic scale and opacity**
+What's about changing our gdpPercap in logarithm scale and reduce the opacity of points ?
+
+```{r gapminder 2, fig.align='center'}
+gapminder %>% filter(gdpPercap < 50000) %>% # ""
+  ggplot(aes(x=log(gdpPercap), y=lifeExp, col=continent)) + # ""
+  geom_point(alpha=0.3) + # setup an opacity 
+  geom_smooth(method = lm) # for each continent build a linear model and plot it 
+```
+
+Here another things change, which is the straith lines we add  in this plot. What's that...? Those lines are simply a model which is run in our 4th instruction ```geom_smooth(method = lm)```. This instruction allows us to build in a back stage a specific linear model for each continent ! Then ```ggplot``` draw naturally those lines into the plot. <br><br> This graph is nice but maybe a bit messy no ? The next section will give us a little tips to arrange that.
+
+---
+
+#### **Split the visualisation**
+What about to do the same as before but by spliting this plot for each continent ? The function that permit to do this trick is the ``` facet_wrap(~continent) ``` function. This function will allow us to split the graphic according to the variable we choose. In our example it's the ```continents``` variable but it can be something else too.
+
+```{r gapminder 3, fig.align='center'}
+gapminder %>% filter(gdpPercap < 50000) %>% # ""
+  ggplot(aes(x=log(gdpPercap), y=lifeExp, col=continent)) + # ""
+  geom_point(alpha=0.3) + # ""
+  geom_smooth(method = lm) + # ""
+  facet_wrap(~continent) # create a new windows for each continent
+```
+
+Now we have a different windows for each continent we don't care about the ```col=continent``` argument of the 
+second instruction```ggplot(aes(x=log(gdpPercap), y=lifeExp, col=year))```. Why? Because the spliting we made with the ```facet_wrap``` function already discriminate the continent, each continent are in different window. So, what we can do to use this argument toughfully is in the next part .. :)
+
+--- 
+
+#### **Design your visualisation and tell a story**
+The other thing to do is to use this argument for an another interesting purpose. For example, here, based on our data we can usefully used the ```year``` variable - which give us the time where the data have beed gathered - in order to understand the global flow based on the time with the color of the graph.
+
+```{r gapminder 4, fig.align='center'}
+gapminder %>% filter(gdpPercap < 50000) %>% # ""
+  ggplot(aes(x=log(gdpPercap), y=lifeExp, col=year)) + # here the color change according to the year
+  geom_point(alpha=0.3) + # ""
+  geom_smooth(method = lm) + # ""
+  facet_wrap(~continent) # ""
+```
+
+Something nice happen here: by playing with color and spliting upon the basic plot we increase the amplitude of our understanding of our data. We need to keep in mind that even if the plot is based on 2 dimensions (x and y) we have the power, by playing with some design attributs, to say more. That's why _Design and Data_ are both linked in a daily powerful data science workflow. 
+
+<h1 align="center"> **Exercices!** </h1>
+<ul>
+
+  <li> Select 5 countries randomly and filter the dataframe with them. Then plot the growing of population in function of the year. Setup the alpha with 0.3. Use the method you want. </li>
+
+```{r ramdom ex1, fig.align='center', echo=FALSE}
+library(dplyr)
+library(ggplot2)
+
+rand.countries <-
+  gapminder %>%
+  pull(country) %>%
+  unique() %>%
+  sample(5)
+
+
+gapminder %>%
+  filter(country %in% rand.countries) %>%
+  ggplot(aes(x=year, y=pop, col=country)) +
+  geom_point(alpha=0.3)
+```
+ 
+  <li> What are the 5 countries with the most population in 1992? Plot them with a bar plot. </li>
+  
+```{r ramdom ex2, fig.align='center', echo=FALSE}
+gapminder %>% filter(year == 1992) %>% arrange(desc(pop)) %>% slice(1:5) %>%
+  ggplot(aes(x=country, y=pop, col=continent, fill=continent)) +
+  geom_bar(stat = "identity")
+```
+
+</ul>
+#### What we learn there ? 
+
+<ul>
+  <li> Use the ``` %>% ``` pipe operator in various situations. </li>
+  <li> Simple data handling with ```select()``` ``` filter() ``` ```mutate()``` ```summarise()``` functions from dplyr package.</li>
+  <li> Combine the power of dplyr and ggplot value from our data. </li>
+  <li> Custom our plot in order to say **more**. </li>
+</ul>
+
+
+<h1 align="center">The end!</h1>
+
